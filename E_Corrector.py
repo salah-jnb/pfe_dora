@@ -187,8 +187,12 @@ class LauncherGUI:
                 self.root.deiconify(); return
             
             src_csv = src_csvs[0]
-            shutil.copy2(src_csv, csv_original_copy)
-            csv_to_load = csv_original_copy 
+            # If source and destination are identical, load directly to avoid SameFileError.
+            if os.path.abspath(src_csv) == os.path.abspath(csv_original_copy):
+                csv_to_load = src_csv
+            else:
+                shutil.copy2(src_csv, csv_original_copy)
+                csv_to_load = csv_original_copy 
 
         log_file = os.path.join(dst_folder, f"{vid_name}_correction_log.txt")
 

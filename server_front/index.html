@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Annotator Server UI</title>
+  <meta name="description" content="Front moderne server-side pour lancer des jobs d'annotation." />
+  <link rel="stylesheet" href="/front-static/css/main.css" />
+</head>
+<body>
+  <canvas id="nexus-bg" aria-hidden="true"></canvas>
+  <div class="bg-glow" aria-hidden="true"></div>
+  <div class="vignette"></div>
+  <main class="layout landing-wrap">
+    <section class="panel landing-card">
+      <p class="hero-title">Bienvenue sur Motion sense</p>
+      <p class="hero-subtitle">Chargez votre video, puis lancez le traitement.</p>
+
+      <form id="annotator-form" class="form-grid">
+        <input id="upload-file" type="file" accept="video/*,.mp4,.avi,.mov,.mkv,.m4v" hidden />
+        <button id="upload-zone" class="upload-zone" type="button" aria-label="Upload video">
+          <span class="upload-icon">Upload</span>
+          <strong id="upload-label">Drag and drop your footage</strong>
+          <small id="upload-meta">Supports MP4, MOV, AVI, MKV</small>
+        </button>
+
+        <button id="start-processing" class="btn primary wide" type="submit">Start Processing</button>
+      </form>
+    </section>
+  </main>
+  <div id="toast-stack" class="toast-stack"></div>
+  <script src="/front-static/js/index.js"></script>
+  <script>
+    (() => {
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const canvas = document.getElementById("nexus-bg");
+      const ctx = canvas.getContext("2d");
+      let w = 0;
+      let h = 0;
+      let t = 0;
+      const stars = [];
+      function resize() {
+        w = window.innerWidth;
+        h = window.innerHeight;
+        canvas.width = w;
+        canvas.height = h;
+      }
+      function seedStars() {
+        stars.length = 0;
+        const count = Math.max(70, Math.floor((w * h) / 18000));
+        for (let i = 0; i < count; i += 1) {
+          stars.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            r: Math.random() * 1.4 + 0.3,
+            s: Math.random() * 0.25 + 0.06,
+          });
+        }
+      }
+      function drawGrid() {
+        const horizon = h * 0.52;
+        ctx.strokeStyle = "rgba(0, 242, 255, 0.11)";
+        ctx.lineWidth = 1;
+        for (let y = horizon; y < h + 20; y += 24) {
+          ctx.beginPath();
+          ctx.moveTo(0, y + Math.sin((y + t * 20) * 0.01) * 1.5);
+          ctx.lineTo(w, y + Math.sin((y + t * 20) * 0.01) * 1.5);
+          ctx.stroke();
+        }
+        for (let x = -w * 0.5; x < w * 1.5; x += 32) {
+          const depth = (x - w / 2) * 0.26;
+          ctx.beginPath();
+          ctx.moveTo(x, h);
+          ctx.lineTo(w / 2 + depth, horizon);
+          ctx.stroke();
+        }
+        ctx.strokeStyle = "rgba(0, 242, 255, 0.2)";
+        ctx.beginPath();
+        ctx.moveTo(w / 2, h);
+        ctx.lineTo(w / 2, horizon - 24);
+        ctx.stroke();
+      }
+      function drawStars() {
+        for (const s of stars) {
+          s.y += s.s;
+          if (s.y > h + 2) {
+            s.y = -2;
+            s.x = Math.random() * w;
+          }
+          ctx.beginPath();
+          ctx.fillStyle = "rgba(207, 246, 255, 0.55)";
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      function render() {
+        ctx.clearRect(0, 0, w, h);
+        drawStars();
+        drawGrid();
+        t += 0.016;
+        if (!prefersReducedMotion) requestAnimationFrame(render);
+      }
+      resize();
+      seedStars();
+      window.addEventListener("resize", () => {
+        resize();
+        seedStars();
+      });
+      render();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Corrector Editor</title>
+  <meta name="description" content="Editeur server-side pour corriger les trajectoires." />
+  <link rel="stylesheet" href="/front-static/css/main.css" />
+</head>
+<body class="editor-theme">
+  <canvas id="nexus-bg" aria-hidden="true"></canvas>
+  <div class="bg-glow" aria-hidden="true"></div>
+  <div class="vignette"></div>
+  <main class="editor-layout">
+    <section class="stepper compact-stepper">
+      <span class="step active">Step 1 Upload</span>
+      <span class="step active">Step 2 Annotator</span>
+      <span class="step active">Step 3 Corrector</span>
+    </section>
+
+    <header class="editor-top">
+      <div class="left">
+        <strong id="editor-segment">Segment: -</strong>
+        <span id="editor-frame">Frame: -</span>
+        <span id="editor-mode" class="state-badge inactive">Select</span>
+      </div>
+      <div class="right">
+        <span id="editor-dirty" class="state-badge inactive">No changes</span>
+        <a id="editor-back-link" class="ghost-link" href="/front/corrector">Retour</a>
+      </div>
+    </header>
+
+    <section class="editor-main">
+      <aside class="editor-side panel">
+        <p class="panel-title">Global IDs</p>
+        <div id="global-ids" class="id-list"></div>
+      </aside>
+
+      <section class="editor-canvas-wrap panel">
+        <canvas id="editor-canvas" width="800" height="600"></canvas>
+      </section>
+
+      <aside class="editor-side panel">
+        <p class="panel-title">Local IDs</p>
+        <div id="local-ids" class="id-list"></div>
+        <p class="panel-title">Missing IDs</p>
+        <div id="missing-ids" class="id-list"></div>
+      </aside>
+    </section>
+
+    <footer class="editor-toolbar panel">
+      <div class="toolbar-group">
+        <button id="first-frame" class="btn mini" type="button">First</button>
+        <button id="prev-frame" class="btn mini" type="button">Prev</button>
+        <button id="next-frame" class="btn mini" type="button">Next</button>
+        <button id="last-frame" class="btn mini" type="button">Last</button>
+      </div>
+      <div class="toolbar-group">
+        <button id="reject-frame" class="btn subtle" type="button">Reject</button>
+        <button id="accept-frame" class="btn subtle" type="button">Accept</button>
+        <button id="undo-frame" class="btn subtle" type="button">Undo</button>
+        <button id="save-all" class="btn primary" type="button">Finalize and Export</button>
+      </div>
+    </footer>
+  </main>
+
+  <div id="editor-menu" class="context-menu hidden"></div>
+  <div id="editor-modal" class="editor-modal hidden">
+    <div class="editor-modal-card">
+      <div class="editor-modal-head">
+        <strong id="editor-modal-title">Modal</strong>
+        <button id="editor-modal-close" class="btn mini" type="button">Close</button>
+      </div>
+      <div id="editor-modal-body" class="editor-modal-body"></div>
+    </div>
+  </div>
+  <div id="toast-stack" class="toast-stack"></div>
+  <script src="/front-static/js/corrector_editor.js"></script>
+  <script>
+    (() => {
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const canvas = document.getElementById("nexus-bg");
+      const ctx = canvas.getContext("2d");
+      let w = 0;
+      let h = 0;
+      let t = 0;
+      const stars = [];
+      function resize() {
+        w = window.innerWidth;
+        h = window.innerHeight;
+        canvas.width = w;
+        canvas.height = h;
+      }
+      function seedStars() {
+        stars.length = 0;
+        const count = Math.max(70, Math.floor((w * h) / 18000));
+        for (let i = 0; i < count; i += 1) {
+          stars.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            r: Math.random() * 1.4 + 0.3,
+            s: Math.random() * 0.25 + 0.06,
+          });
+        }
+      }
+      function drawGrid() {
+        const horizon = h * 0.52;
+        ctx.strokeStyle = "rgba(0, 242, 255, 0.11)";
+        ctx.lineWidth = 1;
+        for (let y = horizon; y < h + 20; y += 24) {
+          ctx.beginPath();
+          ctx.moveTo(0, y + Math.sin((y + t * 20) * 0.01) * 1.5);
+          ctx.lineTo(w, y + Math.sin((y + t * 20) * 0.01) * 1.5);
+          ctx.stroke();
+        }
+        for (let x = -w * 0.5; x < w * 1.5; x += 32) {
+          const depth = (x - w / 2) * 0.26;
+          ctx.beginPath();
+          ctx.moveTo(x, h);
+          ctx.lineTo(w / 2 + depth, horizon);
+          ctx.stroke();
+        }
+        ctx.strokeStyle = "rgba(0, 242, 255, 0.2)";
+        ctx.beginPath();
+        ctx.moveTo(w / 2, h);
+        ctx.lineTo(w / 2, horizon - 24);
+        ctx.stroke();
+      }
+      function drawStars() {
+        for (const s of stars) {
+          s.y += s.s;
+          if (s.y > h + 2) {
+            s.y = -2;
+            s.x = Math.random() * w;
+          }
+          ctx.beginPath();
+          ctx.fillStyle = "rgba(207, 246, 255, 0.55)";
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      function render() {
+        ctx.clearRect(0, 0, w, h);
+        drawStars();
+        drawGrid();
+        t += 0.016;
+        if (!prefersReducedMotion) requestAnimationFrame(render);
+      }
+      resize();
+      seedStars();
+      window.addEventListener("resize", () => {
+        resize();
+        seedStars();
+      });
+      render();
+    })();
+  </script>
+</body>
+</html>

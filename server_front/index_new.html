@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Motion sense Nexus</title>
+  <meta name="description" content="Motion sense - Autonomous Driving Intelligence. Frame by Frame." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/front-static/css/main.css" />
+</head>
+<body>
+  <canvas id="nexus-bg" aria-hidden="true"></canvas>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <main class="nexus-shell">
+    <header class="hero reveal">
+      <p class="brand">Motion sense</p>
+      <h1>Autonomous Driving Intelligence. Frame by Frame.</h1>
+      <p class="subtitle">Production-grade video analytics for accident simulation workflows.</p>
+    </header>
+
+    <section class="metrics reveal" aria-label="Core performance metrics">
+      <article class="metric-card">
+        <strong class="metric-value" data-target="99.7" data-suffix="%">0%</strong>
+        <span class="metric-label">Detection Accuracy</span>
+      </article>
+      <article class="metric-card">
+        <strong class="metric-value" data-target="2.4" data-suffix="M">0M</strong>
+        <span class="metric-label">Frames Analyzed</span>
+      </article>
+      <article class="metric-card">
+        <strong class="metric-value" data-target="8" data-prefix="< " data-suffix="ms">< 0ms</strong>
+        <span class="metric-label">Processing Latency</span>
+      </article>
+    </section>
+
+    <section class="cta reveal">
+      <a class="launch-btn" href="/front/annotateur">Launch Platform</a>
+    </section>
+
+    <section class="how reveal" aria-label="How it works">
+      <h2>How it works</h2>
+      <div class="steps">
+        <article class="step-card">
+          <span class="step-id">01</span>
+          <h3>Upload</h3>
+          <p>Drop your simulation footage and initialize the pipeline in one action.</p>
+        </article>
+        <article class="step-card">
+          <span class="step-id">02</span>
+          <h3>AI Processing</h3>
+          <p>YOLO + BoxMoT run frame-level detection and tracking with live progress.</p>
+        </article>
+        <article class="step-card">
+          <span class="step-id">03</span>
+          <h3>Manual Correction</h3>
+          <p>Refine trajectories in the editor and finalize export-ready outputs.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      // Animated background grid/particles
+      const canvas = document.getElementById("nexus-bg");
+      const ctx = canvas.getContext("2d");
+      let w = 0;
+      let h = 0;
+      let t = 0;
+      const stars = [];
+
+      function resize() {
+        w = window.innerWidth;
+        h = window.innerHeight;
+        canvas.width = w;
+        canvas.height = h;
+      }
+
+      function seedStars() {
+        stars.length = 0;
+        const count = Math.max(70, Math.floor((w * h) / 18000));
+        for (let i = 0; i < count; i += 1) {
+          stars.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            r: Math.random() * 1.4 + 0.3,
+            s: Math.random() * 0.25 + 0.06,
+          });
+        }
+      }
+
+      function drawGrid() {
+        const horizon = h * 0.52;
+        ctx.strokeStyle = "rgba(0, 242, 255, 0.11)";
+        ctx.lineWidth = 1;
+
+        for (let y = horizon; y < h + 20; y += 24) {
+          ctx.beginPath();
+          ctx.moveTo(0, y + Math.sin((y + t * 20) * 0.01) * 1.5);
+          ctx.lineTo(w, y + Math.sin((y + t * 20) * 0.01) * 1.5);
+          ctx.stroke();
+        }
+
+        for (let x = -w * 0.5; x < w * 1.5; x += 32) {
+          const depth = (x - w / 2) * 0.26;
+          ctx.beginPath();
+          ctx.moveTo(x, h);
+          ctx.lineTo(w / 2 + depth, horizon);
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = "rgba(0, 242, 255, 0.2)";
+        ctx.beginPath();
+        ctx.moveTo(w / 2, h);
+        ctx.lineTo(w / 2, horizon - 24);
+        ctx.stroke();
+      }
+
+      function drawStars() {
+        for (const s of stars) {
+          s.y += s.s;
+          if (s.y > h + 2) {
+            s.y = -2;
+            s.x = Math.random() * w;
+          }
+          ctx.beginPath();
+          ctx.fillStyle = "rgba(207, 246, 255, 0.55)";
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function render() {
+        ctx.clearRect(0, 0, w, h);
+        drawStars();
+        drawGrid();
+        t += 0.016;
+        if (!prefersReducedMotion) requestAnimationFrame(render);
+      }
+
+      resize();
+      seedStars();
+      window.addEventListener("resize", () => {
+        resize();
+        seedStars();
+      });
+      render();
+
+      // Metric counters
+      const metricEls = document.querySelectorAll(".metric-value");
+      const startTime = performance.now();
+      const duration = 1400;
+
+      function tick(now) {
+        const p = Math.min(1, (now - startTime) / duration);
+        const eased = 1 - Math.pow(1 - p, 3);
+
+        metricEls.forEach((el) => {
+          const target = Number(el.dataset.target || "0");
+          const prefix = el.dataset.prefix || "";
+          const suffix = el.dataset.suffix || "";
+          const value = target * eased;
+          const shown = suffix === "M" ? value.toFixed(1) : value.toFixed(1);
+          el.textContent = `${prefix}${shown}${suffix}`;
+        });
+
+        if (p < 1 && !prefersReducedMotion) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+
+      // Scroll reveal
+      const revealEls = document.querySelectorAll(".reveal");
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) entry.target.classList.add("visible");
+        });
+      }, { threshold: 0.12 });
+      revealEls.forEach((el) => io.observe(el));
+    })();
+  </script>
+</body>
+</html>

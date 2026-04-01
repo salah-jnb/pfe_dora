@@ -1,0 +1,12 @@
+ultralytics
+boxmot
+lapx
+pandas
+numpy<2.0; python_version < "3.13"
+numpy>=2.0,<3.0; python_version >= "3.13"
+opencv-python
+motmetrics
+Pillow
+scipy
+matplotlib
+seaborn

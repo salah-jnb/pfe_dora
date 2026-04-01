@@ -12,6 +12,7 @@ Run:
 import os
 import sys
 import re
+import json
 import glob
 import shutil
 import threading
@@ -292,9 +293,10 @@ def start_annotation(cfg: AnnotatorConfig, background_tasks: BackgroundTasks):
 async def annotate_upload_start(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    model: str = Form("yolo11n.pt"),
+    model: str = Form("yolo11l.pt"),
     confidence: float = Form(0.23),
-    fps: str = Form("10"),
+    fps: str = Form("Original"),
+    tracking_runs_json: str = Form(""),
 ):
     ext = Path(file.filename or "").suffix.lower()
     if ext not in VIDEO_EXTENSIONS:
@@ -303,9 +305,9 @@ async def annotate_upload_start(
     import uuid
     jid = str(uuid.uuid4())[:8]
     upload_dir = UPLOADS_ROOT / jid
-    output_dir = OUTPUTS_ROOT / jid
+    resolved_output_dir = OUTPUTS_ROOT / jid
     upload_dir.mkdir(parents=True, exist_ok=True)
-    output_dir.mkdir(parents=True, exist_ok=True)
+    resolved_output_dir.mkdir(parents=True, exist_ok=True)
 
     filename = Path(file.filename or f"upload{ext}").name
     saved_path = upload_dir / filename
@@ -313,22 +315,57 @@ async def annotate_upload_start(
     with open(saved_path, "wb") as f:
         f.write(content)
 
-    _register_job(jid, model, str(saved_path), str(output_dir))
+    _register_job(jid, model, str(saved_path), str(resolved_output_dir))
+
+    runs_payload = []
+    if tracking_runs_json.strip():
+        try:
+            runs_payload = json.loads(tracking_runs_json)
+            if not isinstance(runs_payload, list):
+                raise ValueError("tracking_runs_json must be a JSON array")
+        except Exception as e:
+            raise HTTPException(400, f"Invalid tracking_runs_json: {e}")
+
+    tracking_runs = []
+    if runs_payload:
+        for idx, run in enumerate(runs_payload, start=1):
+            if not isinstance(run, dict):
+                raise HTTPException(400, f"Run #{idx} must be an object")
+
+            tracker = str(run.get("tracker", "")).strip().lower()
+            if tracker not in TRACKER_MAP:
+                raise HTTPException(400, f"Run #{idx} has unknown tracker '{tracker}'")
+
+            run_step = int(run.get("step", 1) or 1)
+            run_name = str(run.get("name", f"Run {idx}")).strip() or f"Run {idx}"
+
+            tracking_runs.append(
+                TrackingRun(
+                    name=run_name,
+                    tracker=tracker,
+                    output_dir=str(resolved_output_dir),
+                    step=max(1, run_step),
+                    enabled=bool(run.get("enabled", True)),
+                )
+            )
+
+    if not tracking_runs:
+        tracking_runs = [
+            TrackingRun(
+                name="Run 1",
+                tracker="bytetrack",
+                output_dir=str(resolved_output_dir),
+                step=1,
+                enabled=True,
+            )
+        ]
 
     cfg = AnnotatorConfig(
         input_dir=str(upload_dir),
         model=model,
         confidence=confidence,
         fps=fps,
-        tracking_runs=[
-            TrackingRun(
-                name="Run 1",
-                tracker="bytetrack",
-                output_dir=str(output_dir),
-                step=1,
-                enabled=True,
-            )
-        ],
+        tracking_runs=tracking_runs,
     )
 
     background_tasks.add_task(_run_annotator, jid, cfg)

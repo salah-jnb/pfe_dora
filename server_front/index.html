@@ -24,6 +24,86 @@
           <small id="upload-meta">Supports MP4, MOV, AVI, MKV</small>
         </button>
 
+        <section class="annotator-options" aria-label="Annotator options">
+          <div class="grid-3 compact-options">
+            <div class="field">
+              <label for="model-select">YOLO Model</label>
+              <select id="model-select">
+                <option value="yolo11n.pt">yolo11n.pt</option>
+                <option value="yolo11l.pt" selected>yolo11l.pt</option>
+                <option value="yolo11x.pt">yolo11x.pt</option>
+                <option value="yolo12x.pt">yolo12x.pt</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="confidence-range">Confidence</label>
+              <div class="range-wrap">
+                <input id="confidence-range" type="range" min="0.1" max="0.9" step="0.01" value="0.23" />
+                <span id="confidence-value">0.23</span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="fps-select">FPS</label>
+              <select id="fps-select">
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="Original" selected>Original</option>
+              </select>
+            </div>
+          </div>
+
+          <fieldset class="batch-runs">
+            <legend>Batch Jobs Configuration</legend>
+
+            <label class="run-row" for="run-1-enabled">
+              <span class="run-main">
+                <input id="run-1-enabled" type="checkbox" checked />
+                <span>Run 1: ByteTrack (Baseline)</span>
+              </span>
+              <span class="run-step-wrap">
+                <span>Step</span>
+                <input id="run-1-step" type="number" min="1" value="1" />
+              </span>
+            </label>
+
+            <label class="run-row" for="run-2-enabled">
+              <span class="run-main">
+                <input id="run-2-enabled" type="checkbox" />
+                <span>Run 2: DeepOCSORT (Motion+)</span>
+              </span>
+              <span class="run-step-wrap">
+                <span>Step</span>
+                <input id="run-2-step" type="number" min="1" value="1" />
+              </span>
+            </label>
+
+            <label class="run-row" for="run-3-enabled">
+              <span class="run-main">
+                <input id="run-3-enabled" type="checkbox" />
+                <span>Run 3: StrongSORT (ReID)</span>
+              </span>
+              <span class="run-step-wrap">
+                <span>Step</span>
+                <input id="run-3-step" type="number" min="1" value="1" />
+              </span>
+            </label>
+
+            <label class="run-row" for="run-4-enabled">
+              <span class="run-main">
+                <input id="run-4-enabled" type="checkbox" />
+                <span>Run 4: BoT-SORT (Hybrid)</span>
+              </span>
+              <span class="run-step-wrap">
+                <span>Step</span>
+                <input id="run-4-step" type="number" min="1" value="1" />
+              </span>
+            </label>
+          </fieldset>
+        </section>
+
         <button id="start-processing" class="btn primary wide" type="submit">Start Processing</button>
       </form>
     </section>

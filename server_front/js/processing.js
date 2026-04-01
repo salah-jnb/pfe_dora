@@ -28,6 +28,12 @@ function setProgress(value) {
   const bounded = Math.max(0, Math.min(100, Number(value || 0)));
   progressFill.style.width = `${bounded}%`;
   progressFill.textContent = `${bounded.toFixed(1)}%`;
+  // Remove minimum width restriction at 0% to show dynamic updates
+  if (bounded === 0) {
+    progressFill.style.minWidth = "auto";
+  } else {
+    progressFill.style.minWidth = "54px";
+  }
 }
 
 function setMeta(job) {
@@ -56,6 +62,11 @@ async function pollStatus() {
 
   if (pollTimer) clearInterval(pollTimer);
 
+  // Initialize progress display
+  setProgress(0);
+  statusBox.textContent = "Starting...";
+  logsBox.textContent = "Initializing...";
+
   const update = async () => {
     try {
       const res = await fetch(`/annotate/status/${encodeURIComponent(jobId)}`);
@@ -64,7 +75,8 @@ async function pollStatus() {
 
       statusBox.textContent = `Job ${data.job_id} - ${data.status}`;
       setProgress(data.progress);
-      logsBox.textContent = (data.logs || []).join("\n") || "No logs yet.";
+      logsBox.textContent = (data.logs || []).join("\n") || "Waiting for logs...";
+      logsBox.scrollTop = logsBox.scrollHeight;
       setMeta(data);
 
       const doneStates = ["done", "error", "cancelled"];
@@ -74,6 +86,7 @@ async function pollStatus() {
       pollTimer = null;
 
       if (data.status === "done") {
+        setProgress(100);
         latestSegmentLink = await resolveLatestSegment(data.output_dir || "");
         if (latestSegmentLink) {
           startCorrectionBtn.disabled = false;
@@ -84,8 +97,12 @@ async function pollStatus() {
         }
       }
 
-      if (data.status === "error") showToast("Processing failed", "error");
-      if (data.status === "cancelled") showToast("Processing cancelled", "info");
+      if (data.status === "error") {
+        showToast("Processing failed", "error");
+      }
+      if (data.status === "cancelled") {
+        showToast("Processing cancelled", "info");
+      }
     } catch (err) {
       statusBox.textContent = `Polling error: ${err.message}`;
       showToast(`Polling error: ${err.message}`, "error");
@@ -95,7 +112,8 @@ async function pollStatus() {
   };
 
   await update();
-  pollTimer = setInterval(update, 2000);
+  // Poll every 500ms for responsive progress updates
+  pollTimer = setInterval(update, 500);
 }
 
 startCorrectionBtn.addEventListener("click", () => {
@@ -103,4 +121,12 @@ startCorrectionBtn.addEventListener("click", () => {
   window.location.href = latestSegmentLink;
 });
 
-pollStatus();
+// Start polling on page load
+if (jobId) {
+  pollStatus();
+} else {
+  statusBox.textContent = "No job ID found. Redirecting...";
+  setTimeout(() => {
+    window.location.href = "/front/annotateur";
+  }, 2000);
+}
